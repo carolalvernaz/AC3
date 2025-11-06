@@ -1,4 +1,4 @@
-# README: Simulador do Algoritmo de Tomasulo
+# Simulador do Algoritmo de Tomasulo
 
 Este projeto é um simulador em C do algoritmo de Tomasulo para escalonamento dinâmico de instruções, estendido com suporte para execução especulativa usando um Buffer de Reordenação (ROB).
 
@@ -29,19 +29,22 @@ A vantagem principal dessa abordagem é que o estado permanente do processador (
 
 ## 2\. Integrantes do Grupo
 
+  * **Professor:** Matheus Alcântara Souza
   * Caroline Freitas Alvernaz
-  * *(Espaço para outros integrantes)*
-  * *(Espaço para outros integrantes)*
+  * Giovanna Naves Ribeiro
+  * Júlia Rodrigues Vasconcellos Melo
+  * Marcos Paulo da Silva Laine
+  * Priscila Andrade de Moraes
 
 ## 3\. Como Compilar e Executar
 
 Este projeto foi escrito em C e pode ser compilado usando `gcc` (ou qualquer compilador C padrão). O simulador lê as instruções de um arquivo chamado `programa2.txt`.
 
 **Compilação:**
-(Supondo que o código-fonte se chame `simulador.c`)
+(Supondo que o código-fonte se chame `tomasulo.c`)
 
 ```bash
-gcc -o simulador simulador.c
+gcc -o simulador tomasulo.c
 ```
 
 **Execução:**
@@ -59,27 +62,18 @@ O arquivo `programa2.txt` deve conter uma lista de instruções, uma por linha. 
 O simulador suporta as seguintes operações:
 
   * **LD (Load Immediate):** Carrega um valor imediato em um registrador.
-
       * Formato: `LD Rd, R_base, Imediato`
       * Exemplo: `LD R1, R0, 6` (Carrega o valor 6 em R1)
-
   * **ADD (Adição):** Soma o conteúdo de dois registradores.
-
       * Formato: `ADD Rd, Rs, Rt`
       * Exemplo: `ADD R3, R1, R2` (R3 = R1 + R2)
-
   * **SUB (Subtração):** Subtrai o conteúdo de dois registradores.
-
       * Formato: `SUB Rd, Rs, Rt`
       * Exemplo: `SUB R5, R3, R4` (R5 = R3 - R4)
-
   * **MUL (Multiplicação):** Multiplica o conteúdo de dois registradores.
-
       * Formato: `MUL Rd, Rs, Rt`
       * Exemplo: `MUL R4, R1, R2` (R4 = R1 \* R2)
-
   * **HALT (Parada):** Indica o fim do programa.
-
       * Formato: `HALT`
 
 ### Exemplo de `programa2.txt`
