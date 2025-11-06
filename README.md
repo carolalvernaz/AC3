@@ -6,7 +6,7 @@ Este projeto é um simulador em C do algoritmo de Tomasulo, implementando escalo
 
 As explicações são baseadas nos conceitos do livro *Computer Architecture: A Quantitative Approach*.
 
-O algoritmo de Tomasulo é uma técnica de escalonamento dinâmico para execução fora de ordem (out-of-order) que maximiza o paralelismo (ILP). Este simulador implementa a versão moderna com **execução especulativa**, usando um Buffer de Reordenação (ROB) para permitir que o processador execute instruções de desvios (branches) antes que eles sejam resolvidos.
+O algoritmo de Tomasulo é uma técnica de escalonamento dinâmico para execução fora de ordem (out-of-order) que maximiza o paralelismo (ILP). Este simulador implementa a versão moderna com execução especulativa, usando um Buffer de Reordenação (ROB) para permitir que o processador execute instruções de desvios (branches) antes que eles sejam resolvidos.
 
 ### O Pipeline de Execução
 
@@ -44,8 +44,6 @@ gcc -o tomasulo tomasulo.c
 ./tomasulo
 ```
 
-*(O programa procurará automaticamente pelo arquivo `simulacao.txt` no mesmo diretório.)*
-
 ## 4\. Formato do Arquivo de Entrada (`simulacao.txt`)
 
 O arquivo `simulacao.txt` deve conter uma instrução por linha, com mnemônicos em MAIÚSCULAS e registradores prefixados com `R`.
@@ -76,8 +74,8 @@ HALT
 
 ## 5\. Siglas e Conceitos-Chave
 
-  * **ER / RS (Estação de Reserva):** Armazena instruções emitidas e seus operandos (ou tags de quem os produzirá). Permite o **renome de registradores** para eliminar conflitos WAR e WAW.
-  * **ROB (Buffer de Reordenação):** Fila que armazena resultados de instruções executadas. Garante que o *commit* (efetivação) seja feito na ordem original do programa.
+  * **ER / RS (Estação de Reserva):** Armazena instruções emitidas e seus operandos (ou tags de quem os produzirá). Permite o renome de registradores para eliminar conflitos WAR e WAW.
+  * **ROB (Buffer de Reordenação):** Fila que armazena resultados de instruções executadas. Garante que o commit (efetivação) seja feito na ordem original do programa.
   * **CDB (Common Data Bus):** Barramento de difusão (broadcast) que entrega resultados prontos do ROB e das UFs para as Estações de Reserva.
   * **RAW (Read-After-Write):** Dependência de dados verdadeira (Leitura Após Escrita). A instrução espera na ER pelo resultado.
   * **WAR (Write-After-Read):** Conflito falso (Escrita Após Leitura). Resolvido copiando o valor lido para a ER no momento da emissão.
