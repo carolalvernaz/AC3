@@ -2,13 +2,13 @@
 #include <stdio.h>
 #include <string.h>
 
-// --- Configuração da Arquitetura ---
+// Configuração da Arquitetura
 #define MAX_INSTR_MEM 10
 #define QTD_ESTACOES 4
 #define TAM_FILA_ROB 4
 #define QTD_REGISTRADORES 8
 
-// --- Estruturas de Dados ---
+// Estruturas de Dados
 
 // Tipos de operação
 typedef enum { ADD, SUB, MUL, DIV, LI, HALT } OpType;
@@ -17,7 +17,7 @@ typedef enum { ADD, SUB, MUL, DIV, LI, HALT } OpType;
 typedef struct {
     int op;
     int rs1;
-    int rs2; // Pode ser rs2 ou imediato
+    int rs2; 
     int rd;
 } Operacao;
 
@@ -61,9 +61,9 @@ typedef struct {
     int ciclo;
 } UnidadeControle;
 
-UnidadeControle cpu_core = {0, 0, 0, 0, 1}; // Começa ciclo 1
+UnidadeControle cpu_core = {0, 0, 0, 0, 1};
 
-// --- Funções Auxiliares ---
+// Funções Auxiliares
 
 bool rob_cheio() {
     return cpu_core.rob_contagem >= TAM_FILA_ROB;
@@ -88,7 +88,7 @@ OpType decodificar_mnemonico(const char *mnemonic) {
     return HALT;
 }
 
-// --- Funções de Impressão ---
+// Funções de Impressão
 
 void mostrar_banco_regs() {
     printf("Registradores: ");
@@ -109,10 +109,11 @@ void mostrar_regs_final() {
     printf("\n");
 }
 
-// === Estágios do Pipeline ===
+// Estágios do Pipeline
 
 // Estágio 1: Despacho (Issue)
-void etapa_despacho() {
+void etapa_despacho(int instr_count) {
+    if (cpu_core.pc >= instr_count) return;
     Operacao instr_atual = memoria_instrucoes[cpu_core.pc];
     if (instr_atual.op == HALT) {
         return;
@@ -146,7 +147,7 @@ void etapa_despacho() {
     // Busca operandos
     if (instr_atual.op == LI) {
         estacoes_reserva[er_idx].tag_j = -1;
-        estacoes_reserva[er_idx].val_j = instr_atual.rs2; // Imediato
+        estacoes_reserva[er_idx].val_j = instr_atual.rs2;
         estacoes_reserva[er_idx].tag_k = -1;
         estacoes_reserva[er_idx].val_k = 0;
     } else {
@@ -173,7 +174,6 @@ void etapa_despacho() {
             estacoes_reserva[er_idx].val_k = registradores_arq.regs[instr_atual.rs2];
     }
     
-    // *** Saída Modificada ***
     const char *op_str = (instr_atual.op == ADD) ? "op" : (instr_atual.op == SUB) ? "op" : (instr_atual.op == MUL) ? "op" : (instr_atual.op == DIV) ? "op" : "<-";
      if (instr_atual.op == LI) {
          printf("Issue: PC=%d -> ER[%d], ROB[%d], R%d = %s %d\n",
@@ -205,7 +205,6 @@ void etapa_execucao() {
             fila_reordenacao[unidade->rob_destino].valor = resultado;
             fila_reordenacao[unidade->rob_destino].pronto = true;
             
-            // *** Saída Modificada ***
             printf("Execute: ER[%d] (Op: %d) -> ROB[%d] (Resultado: %d)\n", i, unidade->op, unidade->rob_destino, resultado);
             unidade->ocupado = false; // Libera ER
         }
@@ -242,8 +241,7 @@ void etapa_finalizacao() {
 
         // Atualiza Arquivo de Registradores
         registradores_arq.regs[dest_reg] = val_final;
-        
-        // *** Saída Modificada ***
+
         printf("Commit: R%d <- %d (ROB[%d])\n", dest_reg, val_final, head_idx);
 
         // Libera entrada do ROB
@@ -255,7 +253,7 @@ void etapa_finalizacao() {
     }
 }
 
-// === Main ===
+// Main
 
 int main() {
     FILE *fp = fopen("simulacao.txt", "r");
@@ -266,40 +264,61 @@ int main() {
 
     // Carrega instruções
     char line[100];
-    int count = 0;
-    while (fgets(line, sizeof(line), fp) && count < MAX_INSTR_MEM) {
-        char mnemonic[10];
-        int rd = 0, rs = 0, rt = 0, imm = 0;
+    int instr_count = 0;
+    while (fgets(line, sizeof(line), fp) && instr_count < MAX_INSTR_MEM) {
+        size_t len = strlen(line);
+        if (len > 0 && line[len-1] == '\r') line[len-1] = '\0';
 
-        if (sscanf(line, "%s R%d, R%d, R%d", mnemonic, &rd, &rs, &rt) >= 1 ||
-            sscanf(line, "%s R%d, R%d, %d", mnemonic, &rd, &rs, &imm) >= 1) {
-            
-            Operacao instr;
-            instr.op = decodificar_mnemonico(mnemonic);
-            
-            if (instr.op == LI) {
-                if (sscanf(line, "%*s R%d, R%d, %d", &rd, &rs, &imm) == 3) {
-                    instr.rd = rd;
-                    instr.rs1 = rs;
-                    instr.rs2 = imm;
-                } else {
-                    fprintf(stderr, "Erro ao ler LD: %s\n", line);
-                    continue;
-                }
-            } else if (instr.op != HALT) {
-                 sscanf(line, "%*s R%d, R%d, R%d", &rd, &rs, &rt);
-                instr.rd = rd;
-                instr.rs1 = rs;
-                instr.rs2 = rt;
-            } else {
-                instr.rd = instr.rs1 = instr.rs2 = 0;
+        char mnemonic[10];
+        int rd = -1, rs = -1, rt = -1, imm = 0;
+
+       if (sscanf(line, " %15s", mnemonic) != 1) continue;
+
+        Operacao instr;
+        instr.op = decodificar_mnemonico(mnemonic);
+
+        // HALT
+        if (instr.op == HALT) {
+            instr.rd = instr.rs1 = instr.rs2 = 0;
+            memoria_instrucoes[instr_count++] = instr;
+            break;
+        }
+        // LD
+        else if (instr.op == LI) {
+            if (sscanf(line, "%*s R%d , R%d , %d", &rd, &rs, &imm) != 3 &&
+                sscanf(line, "%*s R%d, R%d, %d", &rd, &rs, &imm) != 3) {
+                fprintf(stderr, "Erro ao ler LD (linha %d): %s\n", instr_count+1, line);
+                continue;
             }
-            
-            memoria_instrucoes[count++] = instr;
-            if (instr.op == HALT) {
-                break;
+            instr.rd = rd; instr.rs1 = rs; instr.rs2 = imm;
+        }
+        // Operacoes R-R-R
+        else {
+            if (sscanf(line, "%*s R%d , R%d , R%d", &rd, &rs, &rt) != 3 &&
+                sscanf(line, "%*s R%d, R%d, R%d", &rd, &rs, &rt) != 3) {
+                fprintf(stderr, "Erro ao ler instrucao (linha %d): %s\n", instr_count+1, line);
+                continue;
+            }
+            instr.rd = rd; instr.rs1 = rs; instr.rs2 = rt;
+        }
+
+        if (instr.rd < 0 || instr.rs1 < 0 ||
+            instr.rd >= QTD_REGISTRADORES || instr.rs1 >= QTD_REGISTRADORES) {
+            fprintf(stderr, "Erro: registrador fora do intervalo (linha %d): %s\n", instr_count+1, line);
+            fclose(fp);
+            return 1;
+        }
+   
+        if (instr.op != LI) {
+            if (instr.rs2 < 0 || instr.rs2 >= QTD_REGISTRADORES) {
+                fprintf(stderr, "Erro: registrador fora do intervalo (linha %d): %s\n", instr_count+1, line);
+                fclose(fp);
+                return 1;
             }
         }
+
+        memoria_instrucoes[instr_count++] = instr;
+        printf("Instrucao lida [%d]: %s -> rd=R%d rs1=R%d rs2=%d\n", instr_count-1, mnemonic, instr.rd, instr.rs1, instr.rs2);
     }
     fclose(fp);
 
@@ -308,6 +327,11 @@ int main() {
     
     while (true) {
         
+        if (cpu_core.pc >= instr_count) {
+            printf("Fim da memoria de instrucoes alcancado.\n");
+            break;
+        }
+
         if (memoria_instrucoes[cpu_core.pc].op == HALT) {
             halt_detectado = true;
         }
@@ -321,7 +345,7 @@ int main() {
         mostrar_banco_regs();
 
         if (!halt_detectado) {
-            etapa_despacho();
+            etapa_despacho(instr_count);
         }
         etapa_execucao();
         etapa_finalizacao();
@@ -335,7 +359,6 @@ int main() {
         }
     }
 
-    // Fim
     printf("ESTADO FINAL\n");
     mostrar_regs_final();
 
