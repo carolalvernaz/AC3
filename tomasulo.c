@@ -3,7 +3,7 @@
 #include <string.h>
 
 // Configuração da Arquitetura
-#define MAX_INSTR_MEM 10
+#define MAX_INSTR_MEM 16
 #define QTD_ESTACOES 4
 #define TAM_FILA_ROB 4
 #define QTD_REGISTRADORES 8
@@ -29,6 +29,7 @@ typedef struct {
     int tag_j, tag_k; // Tags do ROB (qj, qk)
     int val_j, val_k; // Valores dos operandos (vj, vk)
     int rob_destino;  // Índice do ROB para onde escrever
+    int cycles_left;  // ciclos restantes para executar nesta ER
     bool ocupado;
 } SlotReserva;
 
@@ -88,6 +89,29 @@ OpType decodificar_mnemonico(const char *mnemonic) {
     return HALT;
 }
 
+const char* nome_operacao(OpType op) {
+    switch (op) {
+        case ADD: return "ADD";
+        case SUB: return "SUB";
+        case MUL: return "MUL";
+        case DIV: return "DIV";
+        case LI:  return "LD";
+        case HALT: return "HALT";
+        default: return "???";
+    }
+}
+
+int latency_for_op(OpType op) {
+    switch (op) {
+        case LI:  return 1;
+        case ADD: return 1;
+        case SUB: return 1;
+        case MUL: return 2;
+        case DIV: return 2;
+        default:  return 1;
+    }
+}
+
 // Funções de Impressão
 
 void mostrar_banco_regs() {
@@ -100,6 +124,27 @@ void mostrar_banco_regs() {
     }
     printf("\n");
 }
+
+void mostrar_estacoes_reserva() {
+    printf("------ Estado das Estacoes de Reserva ------\n");
+    printf("ID | Op  | Busy | ROB | Vj | Vk | Qj | Qk\n");
+    printf("--------------------------------------------\n");
+    for (int i = 0; i < QTD_ESTACOES; i++) {
+        SlotReserva *er = &estacoes_reserva[i];
+        printf("%2d | %-3s |  %3s | %3d | %2d | %2d | %2d | %2d\n",
+            i,
+            nome_operacao(er->op),
+            er->ocupado ? "Sim" : "Nao",
+            er->rob_destino,
+            er->val_j,
+            er->val_k,
+            er->tag_j,
+            er->tag_k
+        );
+    }
+    printf("--------------------------------------------\n");
+}
+
 
 void mostrar_regs_final() {
     printf("Registradores: ");
@@ -143,7 +188,7 @@ void etapa_despacho(int instr_count) {
     estacoes_reserva[er_idx].ocupado = true;
     estacoes_reserva[er_idx].op = instr_atual.op;
     estacoes_reserva[er_idx].rob_destino = rob_idx;
-
+    estacoes_reserva[er_idx].cycles_left = 0;
     // Busca operandos
     if (instr_atual.op == LI) {
         estacoes_reserva[er_idx].tag_j = -1;
@@ -190,8 +235,24 @@ void etapa_despacho(int instr_count) {
 void etapa_execucao() {
     for (int i = 0; i < QTD_ESTACOES; i++) {
         SlotReserva *unidade = &estacoes_reserva[i];
+
+         if (!unidade->ocupado) continue;
         
-        if (unidade->ocupado && unidade->tag_j == -1 && unidade->tag_k == -1) {
+          // Se ainda esperando operandos, não começa a contagem
+        if (unidade->tag_j != -1 || unidade->tag_k != -1) {
+            continue;
+        }
+
+        // Se ainda não começou a executar (cycles_left == 0), inicia o contador
+        if (unidade->cycles_left == 0) {
+            unidade->cycles_left = latency_for_op(unidade->op);
+        }
+
+        // Decrementa um ciclo de execução
+        unidade->cycles_left--;
+
+        // Se acabou de terminar (cycles_left == 0), gera resultado
+        if (unidade->cycles_left == 0) {
             int resultado = 0;
             switch (unidade->op) {
                 case ADD: resultado = unidade->val_j + unidade->val_k; break;
@@ -205,8 +266,16 @@ void etapa_execucao() {
             fila_reordenacao[unidade->rob_destino].valor = resultado;
             fila_reordenacao[unidade->rob_destino].pronto = true;
             
-            printf("Execute: ER[%d] (Op: %d) -> ROB[%d] (Resultado: %d)\n", i, unidade->op, unidade->rob_destino, resultado);
+printf("Execute: ER[%d] (%s) -> ROB[%d] (Resultado: %d)\n",
+       i, nome_operacao(unidade->op), unidade->rob_destino, resultado);
             unidade->ocupado = false; // Libera ER
+             unidade->tag_j = unidade->tag_k = -1;
+            unidade->val_j = unidade->val_k = 0;
+            unidade->cycles_left = 0;
+        } else {
+            // ainda em execução
+            printf("Executing: ER[%d] (%s) cycles_left=%d\n",
+                   i, nome_operacao(unidade->op), unidade->cycles_left);
         }
     }
 }
@@ -316,9 +385,9 @@ int main() {
                 return 1;
             }
         }
+        printf("Instrucao lida [%d]: %s -> rd=R%d rs1=R%d rs2=%d\n", instr_count, mnemonic, instr.rd, instr.rs1, instr.rs2);
 
         memoria_instrucoes[instr_count++] = instr;
-        printf("Instrucao lida [%d]: %s -> rd=R%d rs1=R%d rs2=%d\n", instr_count-1, mnemonic, instr.rd, instr.rs1, instr.rs2);
     }
     fclose(fp);
 
@@ -343,6 +412,8 @@ int main() {
 
         printf("Ciclo %d\n", cpu_core.ciclo);
         mostrar_banco_regs();
+        mostrar_estacoes_reserva();
+
 
         if (!halt_detectado) {
             etapa_despacho(instr_count);
