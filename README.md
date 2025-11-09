@@ -72,6 +72,8 @@ SUB R5, R3, R4
 HALT
 ```
 
+**Não é suportado o uso de desvios (jump, BEQ, BNE, etc.).**
+
 ## 5\. Siglas e Conceitos-Chave
 
   * **ER / RS (Estação de Reserva):** Armazena instruções emitidas e seus operandos (ou tags de quem os produzirá). Permite o renome de registradores para eliminar conflitos WAR e WAW.
