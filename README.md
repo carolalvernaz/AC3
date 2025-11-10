@@ -32,7 +32,6 @@ O *Commit* em ordem garante que o estado do processador só seja atualizado perm
 O projeto foi escrito em C e pode ser compilado com `gcc`. O simulador lê as instruções do arquivo `simulacao.txt`.
 
 **Compilação:**
-(Supondo que o código-fonte se chame `tomasulo.c`)
 
 ```bash
 gcc -o tomasulo tomasulo.c
@@ -58,6 +57,8 @@ O arquivo `simulacao.txt` deve conter uma instrução por linha, com mnemônicos
       * `SUB R5, R3, R4`
   * **MUL (Multiplicação):** Multiplica dois registradores.
       * `MUL R4, R1, R2`
+  * **DIV (Divisão):** Divide o valor do primeiro registrador pelo segundo.
+      * `DIV R6, R4, R2`
   * **HALT (Parada):** Indica o fim do programa.
       * `HALT`
 
