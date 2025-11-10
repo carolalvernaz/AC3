@@ -50,8 +50,8 @@ O arquivo `simulacao.txt` deve conter uma instrução por linha, com mnemônicos
 
 **Operações Suportadas:**
 
-  * **LD (Load Immediate):** Carrega um valor imediato.
-      * `LD R1, R0, 6`
+  * **LW :** Carrega um valor de outro registrador + offset
+      * `LW R1, R2 (8)`
   * **ADD (Adição):** Soma dois registradores.
       * `ADD R3, R1, R2`
   * **SUB (Subtração):** Subtrai dois registradores.
